@@ -2,15 +2,29 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 
-const TRACKS = {
-  A: { label: "NPI Engineer" },
-  B: { label: "Product Engineer" },
-  C: { label: "CNC Operator" },
-};
+// Nieuwe interessegebieden
+const INTERESTS = [
+  { key: "ontwerp", label: "Ontwerp" },
+  { key: "techniek", label: "Techniek" },
+  { key: "kwaliteit", label: "Kwaliteit" },
+  { key: "ethiek", label: "Ethiek" },
+  { key: "kostenefficient", label: "Kostenefficient" },
+  { key: "samenwerking", label: "Samenwerking" },
+  { key: "innovatie", label: "Innovatie" },
+  { key: "digitalisering", label: "Digitalisering" },
+  { key: "leiderschap", label: "Leiderschap" },
+  { key: "organisatie", label: "Organisatie" },
+];
+
+// Handige lookup-tabel op key
+const INTEREST_MAP = INTERESTS.reduce((acc, it) => {
+  acc[it.key] = it;
+  return acc;
+}, {});
 
 // Keys voor localStorage
-const STORAGE_KEY = "lis-keuzetool-state-v1";
-const HISTORY_KEY = "lis-keuzetool-history-v1";
+const STORAGE_KEY = "lis-keuzetool-state-v2";
+const HISTORY_KEY = "lis-keuzetool-history-v2";
 
 // Helper: verwijdert stuk tussen haakjes, incl. haakjes zelf
 function stripParens(label) {
@@ -27,98 +41,130 @@ function slugifyModuleLabel(label) {
     .replace(/^-+|-+$/g, ""); // trim streepjes
 }
 
+// Alle modules met koppeling naar interessegebieden
 const ALL_MODULES = [
   {
     key: "designForMfg",
-    label: "Design for Manufacturing (A)",
-    tracks: ["A"],
+    label: "Design for Manufacturing",
+    interests: ["ontwerp", "innovatie", "digitalisering"],
     desc: "Leer ontwerpen die productieproblemen voorkomen: maakbaarheid begint bij Design for Manufacturability.",
   },
   {
+    key: "teamwork",
+    label: "Effectief samenwerken in technische projecten",
+    interests: ["kwaliteit", "kostenefficient", "samenwerking", "digitalisering"],
+    desc: "Breng techniek en communicatie samen: leer hoe je een nieuw product succesvol introduceert met stakeholderanalyse en Scrum.",
+  },
+  {
+    key: "feedback",
+    label: "Feedbackgedreven ontwikkeling",
+    interests: ["ontwerp", "kwaliteit", "samenwerking", "innovatie", "leiderschap"],
+    desc: "Versnel innovatie: leer rapid prototyping met 3D-printing, simulaties en slimme teststrategieën.",
+  },
+  {
     key: "ip",
-    label: "Intellectueel eigendom (A+B)",
-    tracks: ["A", "B"],
+    label: "Intellectueel eigendom",
+    interests: ["techniek", "ethiek", "kostenefficient"],
     desc: "Bescherm jouw ideeën: leer hoe intellectueel eigendom werkt en wat het voor technici betekent.",
   },
   {
     key: "scale",
-    label: "Ontwerp voor schaalbaarheid (A+B)",
-    tracks: ["A", "B"],
+    label: "Ontwerp voor schaalbaarheid",
+    interests: ["ontwerp", "techniek", "innovatie", "leiderschap"],
     desc: "Leer hoe je processen veilig en efficiënt opschaalt: van risicoanalyse tot audit en readiness assessment.",
   },
   {
-    key: "teamwork",
-    label: "Effectief samenwerken in technische projecten (A+B+C)",
-    tracks: ["A", "B", "C"],
-    desc: "Breng techniek en communicatie samen: leer hoe je een nieuw product succesvol introduceert met stakeholderanalyse en Scrum.",
+    key: "iso",
+    label: "ISO 9000 en CE",
+    interests: ["ontwerp", "kostenefficient"],
+    desc: "Beheers kwaliteit en veiligheid: leer ISO 9001 en CE-markering toepassen in de praktijk.",
   },
   {
     key: "costControl",
-    label: "Kostenbeheersing in productie (A)",
-    tracks: ["A"],
+    label: "Kostenbeheersing in productie",
+    interests: ["ontwerp", "kostenefficient", "samenwerking", "leiderschap"],
     desc: "Ontdek hoe je echte productkosten berekent en optimaliseert met COGA en TCO.",
   },
   {
-    key: "validation",
-    label: "Procesvalidatie en kwaliteitsverbetering (A+B+C)",
-    tracks: ["A", "B", "C"],
-    desc: "Beheers proceszekerheid: van validatie tot FMEA en SPC voor betrouwbare productie.",
-  },
-  {
-    key: "deadlines",
-    label: "Werken met strakke deadlines (A)",
-    tracks: ["A"],
-    desc: "Word wendbaar en efficiënt: combineer Agile, Lean en risicobeheersing voor succesvolle projecten.",
-  },
-  {
-    key: "feedback",
-    label: "Feedbackgedreven ontwikkeling (A+B+C)",
-    tracks: ["A", "B", "C"],
-    desc: "Versnel innovatie: leer rapid prototyping met 3D-printing, simulaties en slimme teststrategieën.",
-  },
-  {
-    key: "cmm",
-    label: "CMM meten en controleren (C)",
-    tracks: ["C"],
-    desc: "Meet en verbeter met precisie: leer werken met CMM voor betrouwbare kwaliteitscontrole.",
-  },
-  {
-    key: "cncAuto",
-    label: "CNC automation (C)",
-    tracks: ["C"],
-    desc: "Automatiseer CNC-productie: leer robotbelading en nulpuntspansystemen voor maximale efficiëntie.",
-  },
-  {
-    key: "ncProg",
-    label: "NC programmeren (C)",
-    tracks: ["C"],
-    desc: "Programmeer, instel en controleer: leer CNC-techniek van tekening tot foutloze productie.",
-  },
-  {
     key: "materials",
-    label: "Technische materiaalkeuze (B)",
-    tracks: ["B"],
+    label: "Technische materiaalkeuzes",
+    interests: ["ontwerp", "kostenefficient"],
     desc: "Kies het juiste materiaal en ontwerp slimme oplossingen: van eigenschappen tot circulair gebruik.",
   },
   {
-    key: "iso",
-    label: "ISO9000 en CE (A+B)",
-    tracks: ["A", "B"],
-    desc: "Beheers kwaliteit en veiligheid: leer ISO 9001 en CE-markering toepassen in de praktijk.",
+    key: "deadlines",
+    label: "Werken met strakke deadlines",
+    interests: ["kostenefficient", "samenwerking", "leiderschap"],
+    desc: "Word wendbaar en efficiënt: combineer Agile, Lean en risicobeheersing voor succesvolle projecten.",
+  },
+  {
+    key: "validation",
+    label: "Procesvalidatie en kwaliteitsborging",
+    interests: ["kwaliteit", "innovatie", "organisatie"],
+    desc: "Beheers proceszekerheid: van validatie tot FMEA en SPC voor betrouwbare productie.",
+  },
+  {
+    key: "cncAuto",
+    label: "CNC automation",
+    interests: ["techniek", "digitalisering", "organisatie"],
+    desc: "Automatiseer CNC-productie: leer robotbelading en nulpuntspansystemen voor maximale efficiëntie.",
+  },
+  {
+    key: "cmm",
+    label: "CMM meten en controleren",
+    interests: ["techniek", "kwaliteit", "organisatie"],
+    desc: "Meet en verbeter met precisie: leer werken met CMM voor betrouwbare kwaliteitscontrole.",
+  },
+  {
+    key: "ncProg",
+    label: "NC-programmeren",
+    interests: ["techniek"],
+    desc: "Programmeer, stel in en controleer: leer CNC-techniek van tekening tot foutloze productie.",
+  },
+  {
+    key: "maakbaarheid",
+    label: "Maakbaarheid",
+    interests: ["ontwerp", "kostenefficient"],
+    desc: "Ontwerp met maakbaarheid in gedachten: beperk fouten en verspillingen in het productieproces.",
+  },
+  {
+    key: "turnBasic",
+    label: "Basiscursus draaien",
+    interests: ["ontwerp", "techniek"],
+    desc: "Leer de basis van draaien: instellingen, gereedschapkeuze en veilige machinebediening.",
+  },
+  {
+    key: "turnAdvanced",
+    label: "Gevorderde cursus draaien",
+    interests: ["ontwerp", "techniek"],
+    desc: "Verdiep je in complex draaiwerk, toleranties en efficiënte bewerkingsstrategieën.",
+  },
+  {
+    key: "millBasic",
+    label: "Basiscursus frezen",
+    interests: ["ontwerp", "techniek"],
+    desc: "Maak de stap naar frezen: van tekening naar nauwkeurige freesbewerkingen.",
+  },
+  {
+    key: "millAdvanced",
+    label: "Gevorderde cursus frezen",
+    interests: ["ontwerp", "techniek"],
+    desc: "Leer geavanceerde freesstrategieën, 3D-bewerkingen en optimale procesinstellingen.",
   },
 ];
 
 const LIS_BASE =
   "https://www.lis.nl/lis-voor-werkenden-maatwerkprogramma-s-hightechsector/programma-aanbod/";
-const LIS_PERSONAL_BASE = LIS_BASE + "persoonlijk-advies-def/";
+const LIS_PERSONAL_BASE = LIS_BASE + "persoonlijk-advies-2/";
 
+// Bouw de filter-URL, zelfde structuur als v1, andere pad
 function makeLisFilterUrl(interests, noModules) {
   const picked = Array.isArray(interests) ? interests : [];
 
   const programmeSlugs = picked
-    .map((code) => TRACKS[code])
+    .map((code) => INTEREST_MAP[code])
     .filter(Boolean)
-    .map((t) => slugifyModuleLabel(t.label));
+    .map((i) => slugifyModuleLabel(i.label));
 
   const moduleSlugs = (noModules || []).map((m) =>
     slugifyModuleLabel(
@@ -139,10 +185,6 @@ function makeLisFilterUrl(interests, noModules) {
   }
 
   return `${LIS_PERSONAL_BASE}?filter=${parts.join(";")}`;
-}
-
-function formatBulleted(labels) {
-  return labels.filter(Boolean).join("\n  - ");
 }
 
 function encodeAdviceForUrl(obj) {
@@ -252,7 +294,9 @@ export default function LiSKeuzetool() {
     const picked = Array.isArray(interests) ? interests : [];
     if (picked.length === 0) return [];
     return ALL_MODULES.filter(
-      (m) => Array.isArray(m.tracks) && m.tracks.some((t) => picked.includes(t))
+      (m) =>
+        Array.isArray(m.interests) &&
+        m.interests.some((i) => picked.includes(i))
     );
   }, [interests]);
 
@@ -282,7 +326,7 @@ export default function LiSKeuzetool() {
     setInterests((prev) => {
       const list = Array.isArray(prev) ? prev : [];
       if (list.includes(code)) return list.filter((c) => c !== code);
-      if (list.length >= 2) return list;
+      if (list.length >= 3) return list; // max 3 interesses
       return [...list, code];
     });
   }
@@ -302,16 +346,72 @@ export default function LiSKeuzetool() {
   );
 
   function buildAdviceText() {
-    const yes = formatBulleted(handledModulesYes.map((m) => stripParens(m.label)));
-    const no = formatBulleted(handledModulesNo.map((m) => stripParens(m.label)));
+    const lines = [];
 
-    return `Persoonlijk Advies\n\n1. Persoonlijke gegevens\n• Naam: ${name}\n• Datum advies: ${today}\n${
-      background.trim() ? `• Achtergrond: ${background.trim()}\n` : ""
-    }• Wat is je huidige functie: ${role}\n\n2. Overzicht carrière kansen\n• Ik beheers:\n  - ${
-      yes || "(geen ingevulde JA-antwoorden)"
-    }\n• Ik wil leren:\n  - ${
-      no || "(geen ingevulde NEE-antwoorden)"
-    }\n\n3. Link\n• ${dynamicLisUrl}`;
+    lines.push("Persoonlijk Advies");
+    lines.push("");
+    lines.push("1. Persoonlijke gegevens");
+    lines.push(`• Naam: ${name}`);
+    lines.push(`• Datum advies: ${today}`);
+    if (background.trim()) {
+      lines.push(`• Achtergrond: ${background.trim()}`);
+    }
+    lines.push(`• Wat is je huidige functie: ${role}`);
+    lines.push("");
+    lines.push("2. Doorgroei kansen");
+
+    if (Array.isArray(interests) && interests.length > 0) {
+      // alfabetisch op label
+      const sortedInterests = [...interests].sort((a, b) => {
+        const la = INTEREST_MAP[a]?.label || "";
+        const lb = INTEREST_MAP[b]?.label || "";
+        return la.localeCompare(lb, "nl");
+      });
+
+      sortedInterests.forEach((code) => {
+        const interest = INTEREST_MAP[code];
+        if (!interest) return;
+        lines.push("");
+        lines.push(`Binnen het interessegebied: ${interest.label}`);
+
+        const yesForInterest = handledModulesYes.filter(
+          (m) => Array.isArray(m.interests) && m.interests.includes(code)
+        );
+        const noForInterest = handledModulesNo.filter(
+          (m) => Array.isArray(m.interests) && m.interests.includes(code)
+        );
+
+        lines.push("Ik beheers:");
+        if (yesForInterest.length > 0) {
+          yesForInterest.forEach((m) =>
+            lines.push(`  - ${stripParens(m.label)}`)
+          );
+        } else {
+          lines.push(
+            "  - (geen ingevulde JA-antwoorden binnen dit interessegebied)"
+          );
+        }
+
+        lines.push("Ik wil leren:");
+        if (noForInterest.length > 0) {
+          noForInterest.forEach((m) =>
+            lines.push(`  - ${stripParens(m.label)}`)
+          );
+        } else {
+          lines.push(
+            "  - (geen ingevulde NEE-antwoorden binnen dit interessegebied)"
+          );
+        }
+      });
+    } else {
+      lines.push("Er zijn geen interessegebieden geselecteerd in stap 1.");
+    }
+
+    lines.push("");
+    lines.push("3. Link");
+    lines.push(`• ${dynamicLisUrl}`);
+
+    return lines.join("\n");
   }
 
   function buildAdviceObject() {
@@ -338,37 +438,46 @@ export default function LiSKeuzetool() {
 
     const blocks =
       Array.isArray(interests) && interests.length > 0
-        ? interests
+        ? [...interests]
+            .sort((a, b) => {
+              const la = INTEREST_MAP[a]?.label || "";
+              const lb = INTEREST_MAP[b]?.label || "";
+              return la.localeCompare(lb, "nl");
+            })
             .map((code) => {
-              const track = TRACKS[code];
-              if (!track) return "";
+              const interest = INTEREST_MAP[code];
+              if (!interest) return "";
 
-              const yesForTrack = handledModulesYes.filter(
-                (m) => Array.isArray(m.tracks) && m.tracks.includes(code)
+              const yesForInterest = handledModulesYes.filter(
+                (m) => Array.isArray(m.interests) && m.interests.includes(code)
               );
-              const noForTrack = handledModulesNo.filter(
-                (m) => Array.isArray(m.tracks) && m.tracks.includes(code)
+              const noForInterest = handledModulesNo.filter(
+                (m) => Array.isArray(m.interests) && m.interests.includes(code)
               );
 
               const yesHtml =
-                yesForTrack.length > 0
-                  ? yesForTrack
-                      .map((m) => `<li>${clean(stripParens(m.label))}</li>`)
+                yesForInterest.length > 0
+                  ? yesForInterest
+                      .map(
+                        (m) => `<li>${clean(stripParens(m.label))}</li>`
+                      )
                       .join("")
-                  : '<li style="color:#666">(geen ingevulde JA-antwoorden binnen deze functie)</li>';
+                  : '<li style="color:#666">(geen ingevulde JA-antwoorden binnen dit interessegebied)</li>';
 
               const noHtml =
-                noForTrack.length > 0
-                  ? noForTrack
-                      .map((m) => `<li>${clean(stripParens(m.label))}</li>`)
+                noForInterest.length > 0
+                  ? noForInterest
+                      .map(
+                        (m) => `<li>${clean(stripParens(m.label))}</li>`
+                      )
                       .join("")
-                  : '<li style="color:#666">(geen ingevulde NEE-antwoorden binnen deze functie)</li>';
+                  : '<li style="color:#666">(geen ingevulde NEE-antwoorden binnen dit interessegebied)</li>';
 
               return `
         <div style="margin-top:16px; padding:12px; border:1px solid #e5e7eb; border-radius:12px; background:#ffffff;">
-          <p style="margin:0 0 4px 0; font-size:13px; color:#4b5563;">Binnen de functie:</p>
+          <p style="margin:0 0 4px 0; font-size:13px; color:#4b5563;">Binnen het interessegebied:</p>
           <p style="margin:0 0 8px 0; font-weight:600; color:#111827;">${clean(
-            track.label
+            interest.label
           )}</p>
           <div style="display:flex; gap:24px; flex-wrap:wrap;">
             <div style="min-width:180px;">
@@ -383,7 +492,7 @@ export default function LiSKeuzetool() {
         </div>`;
             })
             .join("")
-        : '<p style="margin:4px 0; color:#666;">Er zijn geen functies geselecteerd in stap 1.</p>';
+        : '<p style="margin:4px 0; color:#666;">Er zijn geen interessegebieden geselecteerd in stap 1.</p>';
 
     return `
       <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color:#111;">
@@ -399,9 +508,9 @@ export default function LiSKeuzetool() {
         <p style="margin:4px 0;">Wat is je huidige functie: <strong>${clean(
           role
         )}</strong></p>
-        <h3 style="margin:16px 0 8px 0; font-size:16px;">2. Overzicht carrière kansen</h3>
+        <h3 style="margin:16px 0 8px 0; font-size:16px;">2. Doorgroei kansen</h3>
         ${blocks}
-        <p style="margin:16px 0;">Bekijk mijn advies online: <a href="${url}" target="_blank" rel="noreferrer">Bekijk mijn advies online</a></p>
+        <p style="margin:16px 0;">Bekijk het voor u geselecteerde aanbod: <a href="${url}" target="_blank" rel="noreferrer">Bekijk het voor u geselecteerde aanbod</a></p>
         <hr style="margin:24px 0; border:none; border-top:1px solid #eee;"/>
         <p style="margin:0 0 4px 0; font-weight:600;">Leidse instrumentmakers School</p>
         <p style="margin:0;">Einsteinweg 61<br/>2333 CC Leiden<br/>Nederland</p>
@@ -581,23 +690,23 @@ export default function LiSKeuzetool() {
 
             <div className="mt-6">
               <p className="text-sm font-medium text-black mb-2">
-                Geïnteresseerd in (kies maximaal 2):
+                Maak een keuze uit maximaal 3 interessegebieden:
               </p>
               <div className="flex flex-wrap gap-2">
-                {Object.entries(TRACKS).map(([code, { label }]) => (
+                {INTERESTS.map(({ key, label }) => (
                   <button
-                    key={code}
+                    key={key}
                     type="button"
-                    onClick={() => toggleInterest(code)}
+                    onClick={() => toggleInterest(key)}
                     className={`px-3 py-2 rounded-2xl border text-sm transition-colors duration-300 ${
-                      Array.isArray(interests) && interests.includes(code)
+                      Array.isArray(interests) && interests.includes(key)
                         ? "bg-[#3489c2] text-white border-[#3489c2] hover:bg-black"
                         : "bg-white border-gray-300 hover:bg-black hover:text-white"
                     }`}
                     disabled={
                       !Array.isArray(interests)
                         ? false
-                        : !interests.includes(code) && interests.length >= 2
+                        : !interests.includes(key) && interests.length >= 3
                     }
                   >
                     {label}
@@ -633,7 +742,8 @@ export default function LiSKeuzetool() {
             </p>
             {filteredModules.length === 0 && (
               <p className="text-gray-600">
-                Geen modules om te tonen. Ga terug en kies één of twee interesses.
+                Geen modules om te tonen. Ga terug en kies één of meer
+                interessegebieden.
               </p>
             )}
             <ul className="space-y-3">
@@ -798,75 +908,89 @@ export default function LiSKeuzetool() {
 
             <div className="border rounded-2xl p-5 bg-gray-50 mt-6">
               <h3 className="text-lg font-semibold text-black mb-3">
-                2. Overzicht carrière kansen
+                2. Doorgroei kansen
               </h3>
 
               {Array.isArray(interests) && interests.length > 0 ? (
-                interests.map((code) => {
-                  const track = TRACKS[code];
-                  if (!track) return null;
+                [...interests]
+                  .sort((a, b) => {
+                    const la = INTEREST_MAP[a]?.label || "";
+                    const lb = INTEREST_MAP[b]?.label || "";
+                    return la.localeCompare(lb, "nl");
+                  })
+                  .map((code) => {
+                    const interest = INTEREST_MAP[code];
+                    if (!interest) return null;
 
-                  const yesForTrack = handledModulesYes.filter(
-                    (m) => Array.isArray(m.tracks) && m.tracks.includes(code)
-                  );
-                  const noForTrack = handledModulesNo.filter(
-                    (m) => Array.isArray(m.tracks) && m.tracks.includes(code)
-                  );
+                    const yesForInterest = handledModulesYes.filter(
+                      (m) =>
+                        Array.isArray(m.interests) &&
+                        m.interests.includes(code)
+                    );
+                    const noForInterest = handledModulesNo.filter(
+                      (m) =>
+                        Array.isArray(m.interests) &&
+                        m.interests.includes(code)
+                    );
 
-                  return (
-                    <div
-                      key={code}
-                      className="mt-4 border rounded-xl bg-white p-4 last:mb-0"
-                    >
-                      <p className="text-sm text-gray-600">Binnen de functie:</p>
-                      <p className="font-semibold text-black mb-3">
-                        {track.label}
-                      </p>
+                    return (
+                      <div
+                        key={code}
+                        className="mt-4 border rounded-xl bg-white p-4 last:mb-0"
+                      >
+                        <p className="text-sm text-gray-600">
+                          Binnen het interessegebied:
+                        </p>
+                        <p className="font-semibold text-black mb-3">
+                          {interest.label}
+                        </p>
 
-                      <div className="grid md:grid-cols-2 gap-6">
-                        <div>
-                          <p className="font-medium text-black mb-2">
-                            Ik beheers
-                          </p>
-                          <ul className="list-disc pl-5 space-y-1">
-                            {yesForTrack.length > 0 ? (
-                              yesForTrack.map((m) => (
-                                <li key={m.key} className="text-black">
-                                  {stripParens(m.label)}
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div>
+                            <p className="font-medium text-black mb-2">
+                              Ik beheers
+                            </p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              {yesForInterest.length > 0 ? (
+                                yesForInterest.map((m) => (
+                                  <li key={m.key} className="text-black">
+                                    {stripParens(m.label)}
+                                  </li>
+                                ))
+                              ) : (
+                                <li className="text-gray-500">
+                                  (geen ingevulde JA-antwoorden binnen dit
+                                  interessegebied)
                                 </li>
-                              ))
-                            ) : (
-                              <li className="text-gray-500">
-                                (geen ingevulde JA-antwoorden binnen deze functie)
-                              </li>
-                            )}
-                          </ul>
-                        </div>
-                        <div>
-                          <p className="font-medium text-black mb-2">
-                            Ik wil leren
-                          </p>
-                          <ul className="list-disc pl-5 space-y-1">
-                            {noForTrack.length > 0 ? (
-                              noForTrack.map((m) => (
-                                <li key={m.key} className="text-black">
-                                  {stripParens(m.label)}
+                              )}
+                            </ul>
+                          </div>
+                          <div>
+                            <p className="font-medium text-black mb-2">
+                              Ik wil leren
+                            </p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              {noForInterest.length > 0 ? (
+                                noForInterest.map((m) => (
+                                  <li key={m.key} className="text-black">
+                                    {stripParens(m.label)}
+                                  </li>
+                                ))
+                              ) : (
+                                <li className="text-gray-500">
+                                  (geen ingevulde NEE-antwoorden binnen dit
+                                  interessegebied)
                                 </li>
-                              ))
-                            ) : (
-                              <li className="text-gray-500">
-                                (geen ingevulde NEE-antwoorden binnen deze functie)
-                              </li>
-                            )}
-                          </ul>
+                              )}
+                            </ul>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  })
               ) : (
                 <p className="text-gray-600">
-                  Er zijn geen functies geselecteerd in stap 1.
+                  Er zijn geen interessegebieden geselecteerd in stap 1.
                 </p>
               )}
             </div>
@@ -878,7 +1002,7 @@ export default function LiSKeuzetool() {
                 rel="noopener noreferrer"
                 className="px-5 py-2 rounded-xl border bg-[#3489c2] text-white transition-colors duration-300 hover:bg-black hover:text-white"
               >
-                Bezoek de website en bekijk het voor u geselecteerd aanbod
+                Bekijk het voor u geselecteerde aanbod
               </a>
               <button
                 className="px-5 py-2 rounded-xl border transition-colors duration-300 hover:bg-black hover:text-white"
