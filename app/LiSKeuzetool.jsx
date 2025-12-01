@@ -157,9 +157,13 @@ const LIS_BASE =
   "https://www.lis.nl/lis-voor-werkenden-maatwerkprogramma-s-hightechsector/programma-aanbod/";
 const LIS_PERSONAL_BASE = LIS_BASE + "persoonlijk-advies-2/";
 
-// Bouw de filter-URL, zelfde structuur als v1, andere pad
+/**
+ * Bouw de filter-URL:
+ * Alleen nog losse modules in de filter, géén programma-/interessegedeelte meer.
+ * Voorbeeld:
+ * ?filter=losse-modules:effectief-samenwerken-in-technische-projecten,intellectueel-eigendom
+ */
 function makeLisFilterUrl(_interests, noModules) {
-  // _interests wordt niet meer gebruikt, alleen losse modules
   const moduleSlugs = (noModules || []).map((m) =>
     slugifyModuleLabel(
       typeof m === "string" ? stripParens(m) : stripParens(m.label)
@@ -174,7 +178,6 @@ function makeLisFilterUrl(_interests, noModules) {
   const filter = `losse-modules:${moduleSlugs.join(",")}`;
   return `${LIS_PERSONAL_BASE}?filter=${filter}`;
 }
-
 
 function encodeAdviceForUrl(obj) {
   try {
@@ -581,7 +584,7 @@ export default function LiSKeuzetool() {
     <div className="min-h-screen" style={{ backgroundColor: "#3489c2" }}>
       <header className="mx-auto max-w-4xl px-4 py-8">
         <h1 className="text-3xl font-bold text-black">
-          Keuzetool LiS voor Werkenden
+          Waar liggen je doorgroeimogelijkheden?
         </h1>
         <p className="mt-2 text-white">
           Beantwoord enkele vragen en ontvang een persoonlijk advies met modules
