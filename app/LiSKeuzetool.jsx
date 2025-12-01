@@ -158,34 +158,23 @@ const LIS_BASE =
 const LIS_PERSONAL_BASE = LIS_BASE + "persoonlijk-advies-2/";
 
 // Bouw de filter-URL, zelfde structuur als v1, andere pad
-function makeLisFilterUrl(interests, noModules) {
-  const picked = Array.isArray(interests) ? interests : [];
-
-  const programmeSlugs = picked
-    .map((code) => INTEREST_MAP[code])
-    .filter(Boolean)
-    .map((i) => slugifyModuleLabel(i.label));
-
+function makeLisFilterUrl(_interests, noModules) {
+  // _interests wordt niet meer gebruikt, alleen losse modules
   const moduleSlugs = (noModules || []).map((m) =>
     slugifyModuleLabel(
       typeof m === "string" ? stripParens(m) : stripParens(m.label)
     )
   );
 
-  if (programmeSlugs.length === 0 && moduleSlugs.length === 0) {
+  // Als er geen modules zijn, ga dan naar de algemene pagina
+  if (moduleSlugs.length === 0) {
     return LIS_BASE;
   }
 
-  const parts = [];
-  if (programmeSlugs.length) {
-    parts.push("programma-s:" + programmeSlugs.join(","));
-  }
-  if (moduleSlugs.length) {
-    parts.push("losse-modules:" + moduleSlugs.join(","));
-  }
-
-  return `${LIS_PERSONAL_BASE}?filter=${parts.join(";")}`;
+  const filter = `losse-modules:${moduleSlugs.join(",")}`;
+  return `${LIS_PERSONAL_BASE}?filter=${filter}`;
 }
+
 
 function encodeAdviceForUrl(obj) {
   try {
